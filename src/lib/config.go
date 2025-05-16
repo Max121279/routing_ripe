@@ -14,6 +14,7 @@ type Config struct {
 	Interface      string   `json:"interface"`
 	IgnoredSubnets []string `json:"ignored_subnets"`
 	IgnoredIPs     []string `json:"ignored_ips"`
+	IgnoredDomains []string `json:"ignored_domains"`
 }
 
 // Функция для загрузки конфигурационного файла

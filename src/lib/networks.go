@@ -24,8 +24,6 @@ func ipToInt(ip net.IP) int {
 	return int(ip[0])<<24 | int(ip[1])<<16 | int(ip[2])<<8 | int(ip[3])
 }
 
-// NextIPInRange находит следующий IP-адрес в диапазоне
-
 // NextIPInRange находит следующий IP-адрес в диапазоне для IPv4
 func NextIPInRange(ip net.IP, mask net.IPMask) net.IP {
 
@@ -80,10 +78,13 @@ func splitSubnetWithExclusions(ipNet net.IPNet, excludedIPs map[string]bool) []n
 		current := queue[0]
 		queue = queue[1:]
 
+		var foundIP net.IP
+
 		// Проверяем, содержится ли исключаемый IP в текущей подсети
 		var containsExcluded bool
 		for ip := range excludedIPs {
 			if current.Contains(net.ParseIP(ip)) {
+				foundIP = net.ParseIP(ip)
 				containsExcluded = true
 				break
 			}
@@ -98,7 +99,9 @@ func splitSubnetWithExclusions(ipNet net.IPNet, excludedIPs map[string]bool) []n
 		// Если подсеть минимальна (/32), добавляем её и продолжаем
 		maskSize, bits := current.Mask.Size()
 		if maskSize == bits {
-			result = append(result, current)
+			if current.IP.String() != foundIP.String() {
+				result = append(result, current)
+			}
 			continue
 		}
 
@@ -148,4 +151,21 @@ func SummarizeSubnetsWithExclusions(subnetCIDR string, excludedIPs map[string]bo
 	}
 
 	return summarized, nil
+}
+
+// GetHostIPs возвращает список IPv4 и IPv6 адресов для указанного FQDN
+func GetHostIPs(host string) ([]string, error) {
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка разрешения имени %s: %v", host, err)
+	}
+
+	var result []string
+	for _, ip := range ips {
+		if ip.To4() != nil || ip.To16() != nil {
+			result = append(result, ip.String())
+		}
+	}
+
+	return result, nil
 }

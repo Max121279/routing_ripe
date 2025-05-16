@@ -3,5 +3,6 @@
   "file_path": "/opt/routing/subnets.txt",
   "interface": "ppp0",
   "ignored_subnets": [],
-  "ignored_ips": []
+  "ignored_ips": [],
+  "ignored_domains": ["dlcache4.vibio.tv"]
 }

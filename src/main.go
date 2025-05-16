@@ -45,6 +45,13 @@ func fetchSubnets(config *lib.Config) ([]string, error) {
 		ignoredIPs[ip] = true
 	}
 
+	for _, dom := range config.IgnoredDomains {
+		ips, _ := lib.GetHostIPs(dom)
+		for _, ip := range ips {
+			ignoredIPs[ip] = true
+		}
+	}
+
 	var subnets []string
 	for _, resource := range result.Data.Resources.IPv4 {
 		if strings.Contains(resource, "-") {
@@ -121,8 +128,12 @@ func summarizeSubnets(subnets []string) []string {
 
 	// Преобразуем в строковый формат
 	result := make([]string, len(summarized))
-	for i, net := range summarized {
-		result[i] = net.String()
+	for i, n := range summarized {
+		result[i] = n.String()
+	}
+
+	if len(subnets) != len(result) {
+		result = summarizeSubnets(result)
 	}
 
 	return result
@@ -157,7 +168,7 @@ func filterSubnets(cidr string, ignoredIPs map[string]bool) ([]string, error) {
 
 // summarizeSubnetsWithExclusions - основная функция для суммаризации подсетей с исключениями
 func summarizeSubnetsWithExclusions(subnets []string, excludedIPs map[string]bool) ([]string, error) {
-	var result []*net.IPNet
+	var result []net.IPNet
 
 	// Перебираем все подсети
 	for _, subnet := range subnets {
@@ -172,6 +183,8 @@ func summarizeSubnetsWithExclusions(subnets []string, excludedIPs map[string]boo
 
 	// Преобразуем результат в строковый формат и возвращаем
 	var summarized []string
+	sort.Sort(lib.ByNumericalValue(result))
+
 	for _, net := range result {
 		summarized = append(summarized, net.String())
 	}
@@ -180,18 +193,20 @@ func summarizeSubnetsWithExclusions(subnets []string, excludedIPs map[string]boo
 }
 
 // splitSubnetWithExclusions делит подсеть на два сегмента и исключает IP
-func splitSubnetWithExclusions(ipNet *net.IPNet, excludedIPs map[string]bool) []*net.IPNet {
+func splitSubnetWithExclusions(ipNet *net.IPNet, excludedIPs map[string]bool) []net.IPNet {
 	queue := []*net.IPNet{ipNet}
-	var result []*net.IPNet
+	var result []net.IPNet
 
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
+		var foundIP net.IP
 
 		// Проверяем, содержится ли исключаемый IP в текущей подсети
 		var containsExcluded bool
 		for ip := range excludedIPs {
 			if current.Contains(net.ParseIP(ip)) {
+				foundIP = net.ParseIP(ip)
 				containsExcluded = true
 				break
 			}
@@ -199,14 +214,16 @@ func splitSubnetWithExclusions(ipNet *net.IPNet, excludedIPs map[string]bool) []
 
 		// Если в подсети нет исключаемых адресов, добавляем её в результат
 		if !containsExcluded {
-			result = append(result, current)
+			result = append(result, *current)
 			continue
 		}
 
 		// Если подсеть минимальна (/32), добавляем её и продолжаем
 		maskSize, bits := current.Mask.Size()
 		if maskSize == bits {
-			result = append(result, current)
+			if current.IP.String() != foundIP.String() {
+				result = append(result, *current)
+			}
 			continue
 		}
 
@@ -236,17 +253,17 @@ func splitSubnetWithExclusions(ipNet *net.IPNet, excludedIPs map[string]bool) []
 
 		// Добавляем только те сегменты, которые не содержат исключаемые адреса
 		if shouldAddLeft {
-			result = append(result, left)
+			result = append(result, *left)
 		}
 		if shouldAddRight {
-			result = append(result, right)
+			result = append(result, *right)
 		}
 
 		// Добавляем оба сегмента в очередь для дальнейшей обработки
-		if shouldAddLeft {
+		if !shouldAddLeft {
 			queue = append(queue, left)
 		}
-		if shouldAddRight {
+		if !shouldAddRight {
 			queue = append(queue, right)
 		}
 	}
