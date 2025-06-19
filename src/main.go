@@ -376,17 +376,18 @@ func main() {
 			fmt.Println(subnet)
 		}
 	default:
-		// Запускаем процесс обновления и применения маршрутов
-		fmt.Println("Очистка старых маршрутов...")
-		err = lib.RemoveRoutes(config.FilePath, config.Interface)
-		if err != nil {
-			fmt.Printf("Ошибка при удалении старых маршрутов: %v\n", err)
-		}
 
 		fmt.Println("Запрос данных RIPE...")
 		subnets, err := fetchSubnets(config)
 		if err != nil {
 			panic(err)
+		}
+
+		// Запускаем процесс обновления и применения маршрутов
+		fmt.Println("Очистка старых маршрутов...")
+		err = lib.RemoveRoutes(config.FilePath, config.Interface)
+		if err != nil {
+			fmt.Printf("Ошибка при удалении старых маршрутов: %v\n", err)
 		}
 
 		fmt.Println("Обновление файла подсетей...")
