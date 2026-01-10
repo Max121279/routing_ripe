@@ -1,0 +1,8 @@
+{
+  "country_code": "RU",
+  "file_path": "/opt/routing/subnets.txt",
+  "interface": "eth3",
+  "ignored_subnets": [],
+  "ignored_ips": [],
+  "ignored_domains": ["dlcache4.vibio.tv"]
+}
