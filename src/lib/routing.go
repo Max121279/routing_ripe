@@ -76,13 +76,13 @@ func AddRoutes(filePath, iface, gateway string) error {
 			}
 
 		} else if gateway != "" {
-			// Удаляем маршрут
+
 			cmd := exec.Command("ip", "route", "add", subnet, "via", gateway)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				fmt.Printf("Ошибка удаления маршрута %s: %s\n", subnet, string(output))
+				fmt.Printf("Ошибка добавления маршрута %s: %s\n", subnet, string(output))
 			} else {
-				fmt.Printf("Маршрут для подсети %s удален\n", subnet)
+				fmt.Printf("Маршрут для подсети %s добавлен\n", subnet)
 			}
 		}
 	}
