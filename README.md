@@ -39,3 +39,13 @@ crontab -e
 нажать два раза эскейп, набрать на клавиатуре :wq
 готово
 
+# СБОРКА
+
+## mipsle VIVA SKIPPER
+
+CGO_ENABLED=0 GOOS=linux GOARCH=mipsle GOMIPS=softfloat   go build -trimpath -ldflags="-s -w" -o routing_ripe_mipsle src/main.go
+
+## arm64 GIGA HOPPER
+
+GOOS=linux GOARCH=arm64 go build -o routing_ripe_aarch64 src/main.go
+
