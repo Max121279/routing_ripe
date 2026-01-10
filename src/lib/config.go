@@ -3,7 +3,7 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 var ConfigFile = "config.json"
@@ -11,14 +11,15 @@ var ConfigFile = "config.json"
 type Config struct {
 	CountryCode    string   `json:"country_code"`
 	FilePath       string   `json:"file_path"`
-	Interface      string   `json:"interface"`
+	Interface      string   `json:"interface,omitempty"`
+	Gateway        string   `json:"gateway,omitempty"`
 	IgnoredSubnets []string `json:"ignored_subnets"`
 	IgnoredIPs     []string `json:"ignored_ips"`
 }
 
 // Функция для загрузки конфигурационного файла
 func LoadConfig(filePath string) (*Config, error) {
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка чтения конфигурационного файла: %v", err)
 	}

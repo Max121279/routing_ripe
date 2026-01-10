@@ -1,7 +1,7 @@
 {
   "country_code": "RU",
   "file_path": "/opt/routing/subnets.txt",
-  "interface": "ppp0",
+  "gateway": "192.168.2.254",
   "ignored_subnets": [],
   "ignored_ips": []
 }
