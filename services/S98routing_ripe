@@ -1,0 +1,11 @@
+#!/bin/sh
+
+ENABLED=yes
+PROCS=/opt/routing/routing_ripe
+# remove -s to disable logs in syslog
+ARGS=""
+PREARGS=""
+DESC=$PROCS
+PATH=/opt/sbin:/opt/bin:/opt/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+. /opt/etc/init.d/rc.func

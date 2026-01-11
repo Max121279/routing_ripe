@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Max121279/routing_ripe/src/lib"
 )
@@ -17,16 +18,39 @@ import (
 const baseURL = "https://stat.ripe.net/data/country-resource-list/data.json?resource="
 
 func fetchSubnets(config *lib.Config) ([]string, error) {
-	url := baseURL + config.CountryCode
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка загрузки данных: %v", err)
-	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %v", err)
+	getResult := func(url string) ([]byte, error) {
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка загрузки данных: %v", err)
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка чтения ответа: %v", err)
+		}
+		return body, nil
+	}
+
+	url := baseURL + config.CountryCode
+
+	var (
+		resByte   []byte = nil
+		err       error  = nil
+		maxErrors        = 5
+		timeout          = 2 * time.Second
+		curerrors        = 0
+	)
+
+	for {
+		if resByte, err = getResult(url); err == nil {
+			break
+		}
+		time.Sleep(timeout)
+		if curerrors > maxErrors {
+			return nil, err
+		}
+		curerrors += 1
 	}
 
 	var result struct {
@@ -36,7 +60,7 @@ func fetchSubnets(config *lib.Config) ([]string, error) {
 			} `json:"resources"`
 		} `json:"data"`
 	}
-	if err = json.Unmarshal(body, &result); err != nil {
+	if err = json.Unmarshal(resByte, &result); err != nil {
 		return nil, fmt.Errorf("ошибка разбора JSON: %v", err)
 	}
 
@@ -325,7 +349,7 @@ func main() {
 	case *removeOnly:
 		// Запускаем процесс обновления и применения маршрутов
 		fmt.Println("Очистка старых маршрутов...")
-		err = lib.RemoveRoutes(config.FilePath, config.Interface)
+		err = lib.RemoveRoutes(config.FilePath, config.Interface, config.Gateway)
 		if err != nil {
 			fmt.Printf("Ошибка при удалении старых маршрутов: %v\n", err)
 		}
@@ -344,7 +368,7 @@ func main() {
 		}
 
 		// Добавление новых маршрутов
-		err = lib.AddRoutes(config.FilePath, config.Interface)
+		err = lib.AddRoutes(config.FilePath, config.Interface, config.Gateway)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении новых маршрутов: %v\n", err)
 		}
@@ -359,15 +383,16 @@ func main() {
 			fmt.Println(subnet)
 		}
 	default:
+		var subnets []string
 		// Запускаем процесс обновления и применения маршрутов
 		fmt.Println("Очистка старых маршрутов...")
-		err = lib.RemoveRoutes(config.FilePath, config.Interface)
+		err = lib.RemoveRoutes(config.FilePath, config.Interface, config.Gateway)
 		if err != nil {
 			fmt.Printf("Ошибка при удалении старых маршрутов: %v\n", err)
 		}
 
 		fmt.Println("Запрос данных RIPE...")
-		subnets, err := fetchSubnets(config)
+		subnets, err = fetchSubnets(config)
 		if err != nil {
 			panic(err)
 		}
@@ -380,7 +405,7 @@ func main() {
 		}
 
 		// Добавление новых маршрутов
-		err = lib.AddRoutes(config.FilePath, config.Interface)
+		err = lib.AddRoutes(config.FilePath, config.Interface, config.Gateway)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении новых маршрутов: %v\n", err)
 		}
